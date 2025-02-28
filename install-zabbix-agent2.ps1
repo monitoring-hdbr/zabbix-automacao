@@ -92,7 +92,7 @@ if ($latest_version -ne $null) {
 
     # Se não encontrou nem ZIP nem MSI, tente a versão de fallback
     if (-not $download_url) {
-        $fallback_version = "10"  # Ajustado para uma versão conhecida, mude conforme necessário
+        $fallback_version = "9"  # Ajustado para uma versão conhecida, mude conforme necessário
         $fallback_version_url_zip = "$zabbix_base_url/7.0.$fallback_version/zabbix_agent2-7.0.$fallback_version-windows-amd64-openssl-static.zip"
         $fallback_version_url_msi = "$zabbix_base_url/7.0.$fallback_version/zabbix_agent2-7.0.$fallback_version-windows-amd64-openssl.msi"
 
