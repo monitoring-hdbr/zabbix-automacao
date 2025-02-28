@@ -29,7 +29,7 @@ function Get-LatestVersion {
     )
     try {
         $response = Invoke-WebRequest -Uri $baseUrl -UseBasicParsing
-        $versionMatches = Select-String -InputObject $response.Content -Pattern "7\.0\.(\d+)" -AllMatches
+        $versionMatches = Select-String -InputObject $response.Content -Pattern "7\.0\.(\d+)(?=/)" -AllMatches
 
         # Verifica se não encontrou nenhum match
         if ($versionMatches.Count -eq 0) {
