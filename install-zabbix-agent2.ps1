@@ -27,7 +27,7 @@ $latest_version_url = ""
 # Verificação da versão mais recente
 try {
     $latest_version_response = Invoke-WebRequest -Uri $zabbix_base_url -UseBasicParsing
-    $latest_version_match = Select-String -InputObject $latest_version_response.Content -Pattern "7\.0\.(\d+)/" -AllMatches
+    $latest_version_match = Select-String -InputObject $latest_version_response.Content -Pattern "7\.0\.(\d+)" -AllMatches
 
     foreach ($match in $latest_version_match) {
         $version_number = $match.Matches.Groups[1].Value
@@ -46,8 +46,8 @@ try {
     Write-Host "URL do instalador: $latest_version_url"
 } catch {
     Write-Host "Erro ao buscar as versões disponíveis do Zabbix Agent 2: $_"
-    # Fallback: Defina manualmente uma versão se você souber que está disponível
-    $fallback_version = "3"  # Exemplo de versão que você confirmou existir
+    # Fallback: Ajuste aqui para usar uma versão conhecida que está disponível
+    $fallback_version = "10"  # Ajuste aqui com a versão a ser usada se necessário
     # Ajustando a URL de fallback para o formato correto
     $latest_version_url = "$zabbix_base_url/7.0.$fallback_version/$($zip_file_pattern -f $fallback_version)"
     Write-Host "Usando versão em fallback: $latest_version_url"
