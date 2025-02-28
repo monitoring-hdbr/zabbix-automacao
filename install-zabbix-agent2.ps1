@@ -25,31 +25,47 @@ $zip_file_pattern = "zabbix_agent2-7.0.{0}-windows-amd64-openssl-static.zip"
 $latest_version = 0  # Versão inicial para comparação
 $latest_version_url = ""
 
-# Verificação da versão mais recente
-try {
-    $latest_version_response = Invoke-WebRequest -Uri $zabbix_base_url -UseBasicParsing
-    $latest_version_match = Select-String -InputObject $latest_version_response.Content -Pattern "zabbix_agent2-7\.0\.(\d+)-windows" -AllMatches
+# Função auxiliar para obter a versão mais alta
+function Get-LatestVersion {
+    param(
+        [string]$baseUrl
+    )
+    try {
+        $response = Invoke-WebRequest -Uri $baseUrl -UseBasicParsing
+        $versionMatches = @()
+        
+        # Captura todas as pastas de versão na URL da página
+        $versionMatches = Select-String -InputObject $response.Content -Pattern "7\.0\.(\d+)(?=/)" -AllMatches
 
-    foreach ($match in $latest_version_match) {
-        $version_number = $match.Matches.Groups[1].Value
-        if ([int]$version_number -gt [int]$latest_version) {
-            $latest_version = $version_number
-            # Ajustando a URL para o formato correto
-            $latest_version_url = "$zabbix_base_url/7.0.$latest_version/$($zip_file_pattern -f $latest_version)"
-            Write-Host "Encontrada versão: $latest_version"
+        $latestVersion = 0
+        foreach ($match in $versionMatches) {
+            $versionNumber = [int]$match.Groups[1].Value
+            if ($versionNumber -gt $latestVersion) {
+                $latestVersion = $versionNumber
+            }
         }
+        
+        if ($latestVersion -gt 0) {
+            return $latestVersion
+        } else {
+            throw "Nenhuma versão válida encontrada na URL."
+        }
+    } catch {
+        Write-Host "Erro ao buscar versões: $_"
+        return $null
     }
+}
 
-    if (-not $latest_version_url) {
-        throw "Nenhuma versão válida encontrada."
-    }
+# Obter a versão mais recente
+$latest_version = Get-LatestVersion -baseUrl $zabbix_base_url
 
+if ($latest_version) {
+    $latest_version_url = "$zabbix_base_url/7.0.$latest_version/$($zip_file_pattern -f $latest_version)"
     Write-Host "Versão mais recente do Zabbix Agent 2: $latest_version"
     Write-Host "URL do instalador: $latest_version_url"
-} catch {
-    Write-Host "Erro ao buscar as versões disponíveis do Zabbix Agent 2: $_"
-    # Fallback: Use a versão de fallback que sabe que está disponível.
-    $fallback_version = "8"  # Ajuste para uma versão conhecida.
+} else {
+    # Fallback: Ajuste para uma versão conhecida
+    $fallback_version = "10"  
     $latest_version_url = "$zabbix_base_url/7.0.$fallback_version/$($zip_file_pattern -f $fallback_version)"
     Write-Host "Usando versão em fallback: $latest_version_url"
 }
