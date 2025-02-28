@@ -3,6 +3,7 @@
 # finalidade: automatizar instalação do agente windows zabbix
 # comando para executar o script:
 # powershell -ExecutionPolicy Bypass -NoProfile -Command "iwr -UseBasicParsing 'https://raw.githubusercontent.com/monitoring-hdbr/zabbix-automacao/refs/heads/main/install-zabbix-agent2.ps1' | Invoke-Expression"
+
 # Solicitação interativa de parâmetros ao usuário
 $HDNUMBER = Read-Host "Informe o HDNUMBER (ex: HD28222, HDCOLO28222, HDVDC11, HDFW319)"
 $DC = Read-Host "Informe o DC (SPO ou JPA)"
@@ -27,7 +28,7 @@ $latest_version_url = ""
 # Verificação da versão mais recente
 try {
     $latest_version_response = Invoke-WebRequest -Uri $zabbix_base_url -UseBasicParsing
-    $latest_version_match = Select-String -InputObject $latest_version_response.Content -Pattern "7\.0\.(\d+)" -AllMatches
+    $latest_version_match = Select-String -InputObject $latest_version_response.Content -Pattern "zabbix_agent2-7\.0\.(\d+)-windows" -AllMatches
 
     foreach ($match in $latest_version_match) {
         $version_number = $match.Matches.Groups[1].Value
@@ -35,6 +36,7 @@ try {
             $latest_version = $version_number
             # Ajustando a URL para o formato correto
             $latest_version_url = "$zabbix_base_url/7.0.$latest_version/$($zip_file_pattern -f $latest_version)"
+            Write-Host "Encontrada versão: $latest_version"
         }
     }
 
@@ -46,9 +48,8 @@ try {
     Write-Host "URL do instalador: $latest_version_url"
 } catch {
     Write-Host "Erro ao buscar as versões disponíveis do Zabbix Agent 2: $_"
-    # Fallback: Ajuste aqui para usar uma versão conhecida que está disponível
-    $fallback_version = "3"  # Ajuste aqui com a versão a ser usada se necessário
-    # Ajustando a URL de fallback para o formato correto
+    # Fallback: Use a versão de fallback que sabe que está disponível.
+    $fallback_version = "8"  # Ajuste para uma versão conhecida.
     $latest_version_url = "$zabbix_base_url/7.0.$fallback_version/$($zip_file_pattern -f $fallback_version)"
     Write-Host "Usando versão em fallback: $latest_version_url"
 }
