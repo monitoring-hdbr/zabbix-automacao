@@ -21,8 +21,6 @@ $serverActive = "cm.hostdime.com.br:10083"
 $hostMetadata = "dimenoc##1223##HDBRASIL"
 $install_folder = 'C:\Program Files\Zabbix Agent'
 $zabbix_base_url = "https://cdn.zabbix.com/zabbix/binaries/stable/7.0"
-$zip_file_pattern = "zabbix_agent2-7.0.{0}-windows-amd64-openssl-static.zip"
-$latest_version = 0  # Versão inicial para comparação
 $latest_version_url = ""
 
 # Função auxiliar para obter a versão mais alta
@@ -35,8 +33,8 @@ function Get-LatestVersion {
         $versionMatches = @()
         
         # Captura todas as pastas de versão na URL da página
-        $versionMatches = Select-String -InputObject $response.Content -Pattern "7\.0\.(\d+)(?=/)" -AllMatches
-
+        $versionMatches = Select-String -InputObject $response.Content -Pattern "7\.0\.(\d+)/" -AllMatches
+        
         $latestVersion = 0
         foreach ($match in $versionMatches) {
             $versionNumber = [int]$match.Groups[1].Value
@@ -60,14 +58,45 @@ function Get-LatestVersion {
 $latest_version = Get-LatestVersion -baseUrl $zabbix_base_url
 
 if ($latest_version) {
-    $latest_version_url = "$zabbix_base_url/7.0.$latest_version/$($zip_file_pattern -f $latest_version)"
-    Write-Host "Versão mais recente do Zabbix Agent 2: $latest_version"
-    Write-Host "URL do instalador: $latest_version_url"
+    # Tentar baixar arquivo .zip primeiro
+    $latest_version_url_zip = "$zabbix_base_url/7.0.$latest_version/zabbix_agent2-7.0.$latest_version-windows-amd64-openssl-static.zip"
+    $latest_version_url_msi = "$zabbix_base_url/7.0.$latest_version/zabbix_agent2-7.0.$latest_version-windows-amd64-openssl.msi"
+
+    Write-Host "Verificando se o arquivo ZIP existe: $latest_version_url_zip"
+
+    try {
+        # Verificar se o arquivo .zip está acessível
+        $response_zip = Invoke-WebRequest -Uri $latest_version_url_zip -UseBasicParsing -ErrorAction Stop
+        $download_url = $latest_version_url_zip
+        $file_type = "zip"
+    } catch {
+        Write-Host "Arquivo ZIP não encontrado, tentando o arquivo MSI..."
+        
+        # Se não existe .zip, verificar se o arquivo .msi está acessível
+        try {
+            $response_msi = Invoke-WebRequest -Uri $latest_version_url_msi -UseBasicParsing -ErrorAction Stop
+            $download_url = $latest_version_url_msi
+            $file_type = "msi"
+        } catch {
+            Write-Host "Arquivo MSI não encontrado. Usando versão de fallback."
+            $fallback_version = "4"  # Ajuste para uma versão conhecida.
+            $latest_version_url_fallback = "$zabbix_base_url/7.0.$fallback_version/zabbix_agent2-7.0.$fallback_version-windows-amd64-openssl-static.zip"
+
+            # Verificar se o fallback ZIP existe
+            try {
+                $response_fallback_zip = Invoke-WebRequest -Uri $latest_version_url_fallback -UseBasicParsing -ErrorAction Stop
+                $download_url = $latest_version_url_fallback
+                Write-Host "Usando versão em fallback: $latest_version_url_fallback"
+            } catch {
+                throw "Nenhum arquivo encontrado para download."
+            }
+        }
+    }
+
+    Write-Host "URL do instalador: $download_url"
 } else {
-    # Fallback: Ajuste para uma versão conhecida
-    $fallback_version = "10"  
-    $latest_version_url = "$zabbix_base_url/7.0.$fallback_version/$($zip_file_pattern -f $fallback_version)"
-    Write-Host "Usando versão em fallback: $latest_version_url"
+    Write-Host "Nenhuma versão disponível encontrada."
+    exit
 }
 
 # Log
@@ -77,23 +106,15 @@ $logFile = "{0}\{1}-{2}.log" -f $env:TEMP,"install-zabbix-agent",$DataStamp
 # Download do binário
 Write-Host 'Fazendo download do instalador'
 try {
-    Invoke-WebRequest -Uri $latest_version_url -OutFile "$env:TEMP\zabbix_agent.zip"
+    Invoke-WebRequest -Uri $download_url -OutFile "$env:TEMP\zabbix_agent.$file_type"
 } catch {
-    Write-Host "Falha ao baixar o arquivo do Zabbix Agent. URL: $latest_version_url"
+    Write-Host "Falha ao baixar o arquivo do Zabbix Agent. URL: $download_url"
     throw "Erro: $_"
 }
 
-# Extraindo o ZIP
-if (Test-Path "$env:TEMP\zabbix_agent.zip") {
-    Write-Host 'Extraindo o Zabbix Agent 2'
-    Expand-Archive -Path "$env:TEMP\zabbix_agent.zip" -DestinationPath "$env:TEMP\zabbix_agent" -Force
-    $msi_path = Get-ChildItem -Path "$env:TEMP\zabbix_agent" -Filter "*.msi" | Select-Object -First 1
-} else {
-    throw "Falha ao baixar o arquivo do Zabbix Agent."
-}
-
 # Instalação do Zabbix Agent 2
-if ($msi_path) {
+if ($file_type -eq "msi") {
+    $msi_path = "$env:TEMP\zabbix_agent.$file_type"
     Write-Host 'Instalando o Zabbix Agent 2'
     $MSIArguments = @(
         "/passive",
@@ -114,6 +135,38 @@ if ($msi_path) {
         "SKIP=`"fw`""
     )
     Start-Process "msiexec.exe" -ArgumentList $MSIArguments -Wait
+    Remove-Item -Path $msi_path -Recurse
+} elseif ($file_type -eq "zip") {
+    # Extraindo o ZIP
+    Write-Host 'Extraindo o Zabbix Agent 2'
+    Expand-Archive -Path "$env:TEMP\zabbix_agent.zip" -DestinationPath "$env:TEMP\zabbix_agent" -Force
+    $msi_path = Get-ChildItem -Path "$env:TEMP\zabbix_agent" -Filter "*.msi" | Select-Object -First 1
+
+    # Instalação do Zabbix Agent 2
+    if ($msi_path) {
+        Write-Host 'Instalando o Zabbix Agent 2'
+        $MSIArguments = @(
+            "/passive",
+            "/norestart",
+            "/l*v `"$logFile`"",
+            "/i `"$msi_path`"",
+            "ADDLOCAL=`"AgentProgram,MSIPackageFeature`"",
+            "LOGTYPE=`"file`"",
+            "LOGFILE=`"$install_folder\log\zabbix_agentd.log`"",
+            "ENABLEREMOTECOMMANDS=`"1`"",
+            "SERVER=`"$server`"",
+            "SERVERACTIVE=`"$serverActive`"",
+            "HOSTNAME=`"$server_name`"",
+            "HOSTMETADATA=`"$hostMetadata`"",
+            "TIMEOUT=`"15`"",
+            "INSTALLFOLDER=`"$install_folder`"",
+            "ENABLEPATH=`"1`"",
+            "SKIP=`"fw`""
+        )
+        Start-Process "msiexec.exe" -ArgumentList $MSIArguments -Wait
+    }
+
+    # Limpeza
     Remove-Item -Path "$env:TEMP\zabbix_agent.zip" -Recurse
     Remove-Item -Path "$env:TEMP\zabbix_agent" -Recurse
 }
@@ -142,4 +195,4 @@ Start-Service -Name "Zabbix Agent 2" | Out-File -Append -FilePath "$logFile"
 # Informações finais
 Write-Host "\n>>> Instalação concluída! <<<"
 Write-Host "\n> Hostname = $server_name"
-Write-Host "\n> Instalation Folder = $install_folder"
+Write-Host "\n> Install Folder = $install_folder"
