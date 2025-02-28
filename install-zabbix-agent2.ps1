@@ -21,23 +21,33 @@ $serverActive = "cm.hostdime.com.br:10083"
 $hostMetadata = "dimenoc##1223##HDBRASIL"
 $install_folder = 'C:\Program Files\Zabbix Agent'
 $zabbix_base_url = "https://cdn.zabbix.com/zabbix/binaries/stable/7.0/"
-$zip_file_name = "zabbix_agent2-7.0.{0}-windows-amd64-openssl-static.zip"
-$latest_version = "10"  # Versão inicial para comparação
+$zip_file_pattern = "zabbix_agent2-7.0.{0}-windows-amd64-openssl-static.zip"
+$latest_version = 0  # Versão inicial para comparação
+$latest_version_url = ""
 
 # Verificação da versão mais recente
-$latest_version_response = Invoke-WebRequest -Uri $zabbix_base_url -UseBasicParsing
-$latest_version_match = Select-String -InputObject $latest_version_response.Content -Pattern "zabbix_agent2-7\.0\.(\d+)-windows-amd64-openssl-static\.zip" -AllMatches
+try {
+    $latest_version_response = Invoke-WebRequest -Uri $zabbix_base_url -UseBasicParsing
+    $latest_version_match = Select-String -InputObject $latest_version_response.Content -Pattern "zabbix_agent2-7\.0\.(\d+)-windows-amd64-openssl-static\.zip" -AllMatches
 
-foreach ($match in $latest_version_match) {
-    $version_number = $match.Matches.Groups[1].Value
-    if ([int]$version_number -gt [int]$latest_version) {
-        $latest_version = $version_number
+    foreach ($match in $latest_version_match) {
+        $version_number = $match.Matches.Groups[1].Value
+        if ([int]$version_number -gt [int]$latest_version) {
+            $latest_version = $version_number
+            $latest_version_url = "$zabbix_base_url$($zip_file_pattern -f $latest_version)"
+        }
     }
-}
 
-$msi = "$zabbix_base_url$($zip_file_name -f $latest_version)"
-Write-Host "Versão mais recente do Zabbix Agent 2: $latest_version"
-Write-Host "URL do instalador: $msi"
+    if (-not $latest_version_url) {
+        throw "Nenhuma versão válida encontrada."
+    }
+
+    Write-Host "Versão mais recente do Zabbix Agent 2: $latest_version"
+    Write-Host "URL do instalador: $latest_version_url"
+} catch {
+    Write-Host "Erro ao buscar as versões disponíveis do Zabbix Agent 2: $_"
+    exit 1
+}
 
 # Log
 $DataStamp = get-date -Format yyyy.MM.dd-HH.mm.ss
@@ -45,7 +55,12 @@ $logFile = "{0}\{1}-{2}.log" -f $env:TEMP,"install-zabbix-agent",$DataStamp
 
 # Download do binário
 Write-Host 'Fazendo download do instalador'
-Invoke-WebRequest -Uri $msi -OutFile "$env:TEMP\zabbix_agent.zip"
+try {
+    Invoke-WebRequest -Uri $latest_version_url -OutFile "$env:TEMP\zabbix_agent.zip" 
+} catch {
+    Write-Host "Falha ao baixar o arquivo do Zabbix Agent. URL: $latest_version_url"
+    throw "Erro: $_"
+}
 
 # Extraindo o ZIP
 if (Test-Path "$env:TEMP\zabbix_agent.zip") {
