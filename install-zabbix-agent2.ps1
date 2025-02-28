@@ -66,7 +66,7 @@ if ($latest_version -ne $null) {
     $latest_version_url_zip = "$zabbix_base_url/7.0.$latest_version/zabbix_agent2-7.0.$latest_version-windows-amd64-openssl-static.zip"
     $latest_version_url_msi = "$zabbix_base_url/7.0.$latest_version/zabbix_agent2-7.0.$latest_version-windows-amd64-openssl.msi"
 
-    Write-Host "Tentando baixar o arquivo ZIP de: $latest_version_url_zip"
+    Write-Host "Baixando arquivo ZIP de: $latest_version_url_zip"
 
     # Verificação de arquivos da versão mais recente
     $download_url = $null
@@ -83,7 +83,7 @@ if ($latest_version -ne $null) {
         
         # Se não existia o zip, tentar o MSI
         try {
-            Write-Host "Tentando baixar o arquivo MSI de: $latest_version_url_msi"
+            Write-Host "Baixando arquivo MSI de: $latest_version_url_msi"
             $response_msi = Invoke-WebRequest -Uri $latest_version_url_msi -UseBasicParsing -ErrorAction Stop
             Write-Host "Baixando MSI de: $latest_version_url_msi"
             $download_url = $latest_version_url_msi
