@@ -29,9 +29,13 @@ function Get-LatestVersion {
     )
     try {
         $response = Invoke-WebRequest -Uri $baseUrl -UseBasicParsing
-        $versionMatches = Select-String -InputObject $response.Content -Pattern "7\.0\.(\d+)(?=/)" -AllMatches
+        if (-not $response.Content) {
+            throw "Conteúdo da página está vazio."
+        }
 
-        # Verifica se não encontrou nenhum match
+        # Regex para capturar as versões
+        $versionMatches = [regex]::Matches($response.Content, "7\.0\.(\d+)")
+
         if ($versionMatches.Count -eq 0) {
             throw "Nenhuma versão encontrada."
         }
@@ -43,7 +47,7 @@ function Get-LatestVersion {
                 $latestVersion = $versionNumber
             }
         }
-        
+
         if ($latestVersion -gt 0) {
             return $latestVersion
         } else {
