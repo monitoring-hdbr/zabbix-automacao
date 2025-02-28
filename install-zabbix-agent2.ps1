@@ -19,7 +19,7 @@ $server = "127.0.0.1"
 $serverActive = "cm.hostdime.com.br:10083"
 $hostMetadata = "dimenoc##1223##HDBRASIL"
 $install_folder = 'C:\Program Files\Zabbix Agent'
-$zabbix_base_url = "https://cdn.zabbix.com/zabbix/binaries/stable/7.0/"
+$zabbix_base_url = "https://cdn.zabbix.com/zabbix/binaries/stable/7.0"
 $zip_file_pattern = "zabbix_agent2-7.0.{0}-windows-amd64-openssl-static.zip"
 $latest_version = 0  # Versão inicial para comparação
 $latest_version_url = ""
@@ -47,7 +47,7 @@ try {
 } catch {
     Write-Host "Erro ao buscar as versões disponíveis do Zabbix Agent 2: $_"
     # Fallback: Defina manualmente uma versão se você souber que está disponível
-    $fallback_version = "9"  # Exemplo de versão que você confirmou existir
+    $fallback_version = "3"  # Exemplo de versão que você confirmou existir
     # Ajustando a URL de fallback para o formato correto
     $latest_version_url = "$zabbix_base_url/7.0.$fallback_version/$($zip_file_pattern -f $fallback_version)"
     Write-Host "Usando versão em fallback: $latest_version_url"
