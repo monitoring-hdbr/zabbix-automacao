@@ -86,34 +86,8 @@ if ($latest_version -ne $null) {
             $download_url = $latest_version_url_msi
             $file_type = "msi"
         } catch {
-            Write-Host "Arquivo MSI não encontrado. Usando versão de fallback."
-        }
-    }
-
-    # Se não encontrou nem ZIP nem MSI, tente a versão de fallback
-    if (-not $download_url) {
-        $fallback_version = "9"  # Ajustado para uma versão conhecida, mude conforme necessário
-        $fallback_version_url_zip = "$zabbix_base_url/7.0.$fallback_version/zabbix_agent2-7.0.$fallback_version-windows-amd64-openssl-static.zip"
-        $fallback_version_url_msi = "$zabbix_base_url/7.0.$fallback_version/zabbix_agent2-7.0.$fallback_version-windows-amd64-openssl.msi"
-
-        Write-Host "Verificando a versão de fallback..."
-
-        try {
-            # Tentativa de verificar a existência do .zip na versão de fallback
-            $response_fallback_zip = Invoke-WebRequest -Uri $fallback_version_url_zip -UseBasicParsing -ErrorAction Stop
-            $download_url = $fallback_version_url_zip
-            $file_type = "zip"
-            Write-Host "Usando versão de fallback (ZIP): $download_url"
-        } catch {
-            Write-Host "Fallback ZIP não encontrado, tentando o fallback MSI..."
-            try {
-                $response_fallback_msi = Invoke-WebRequest -Uri $fallback_version_url_msi -UseBasicParsing -ErrorAction Stop
-                $download_url = $fallback_version_url_msi
-                $file_type = "msi"
-                Write-Host "Usando versão de fallback (MSI): $download_url"
-            } catch {
-                throw "Nenhum arquivo encontrado para download."
-            }
+            Write-Host "Arquivo MSI não encontrado. Nenhum arquivo disponível para download."
+            exit
         }
     }
 
