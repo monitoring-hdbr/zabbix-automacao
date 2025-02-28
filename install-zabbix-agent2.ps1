@@ -2,7 +2,7 @@
 # data: 12-02-2025
 # finalidade: automatizar instalação do agente windows zabbix
 # comando para executar o script:
-# powershell -ExecutionPolicy Bypass -NoProfile -Command "iwr -UseBasicParsing 'https://codesilo.dimenoc.com/-/snippets/42/raw/main/install_zabbix_agente2.ps1' | Invoke-Expression"
+# powershell -ExecutionPolicy Bypass -NoProfile -Command "iwr -UseBasicParsing 'https://raw.githubusercontent.com/monitoring-hdbr/zabbix-automacao/refs/heads/main/install-zabbix-agent2.ps1' | Invoke-Expression"
 
 # Solicitação interativa de parâmetros ao usuário
 $HDNUMBER = Read-Host "Informe o HDNUMBER (ex: HD28222, HDCOLO28222, HDVDC11, HDFW319)"
