@@ -1,4 +1,65 @@
-t_version-windows-amd64-openssl-static.zip"
+# autor: marcilio ramos
+# data: 12-02-2025
+# finalidade: automatizar instalação do agente windows zabbix
+# comando para executar o script:
+# powershell -ExecutionPolicy Bypass -NoProfile -Command "iwr -UseBasicParsing 'https://raw.githubusercontent.com/monitoring-hdbr/zabbix-automacao/refs/heads/main/install-zabbix-agent2.ps1' | Invoke-Expression"
+
+# Solicitação interativa de parâmetros ao usuário
+$HDNUMBER = Read-Host "Informe o HDNUMBER (ex: HD28222, HDCOLO28222, HDVDC11, HDFW319)"
+$DC = Read-Host "Informe o DC (SPO ou JPA)"
+$CLIENTE = Read-Host "Informe o CLIENTE (ex: MIA, SEBRAE, Hostdime, TRE, CREA)"
+$HOSTNAME = Read-Host "Informe o HOSTNAME (ex: Mysql-Prod, AD-Primario, DNS-Primario)"
+$TIPO = Read-Host "Informe o TIPO do Host (ex: NODE ou VM)"
+
+# Construção do hostname
+$server_name = ("$TIPO.$HDNUMBER.$DC.$CLIENTE.$HOSTNAME.WINDOWS").ToUpper()
+Write-Host "Hostname gerado: $server_name"
+
+# Configurações
+$server = "127.0.0.1"
+$serverActive = "cm.hostdime.com.br:10083"
+$hostMetadata = "dimenoc##1223##HDBRASIL"
+$install_folder = 'C:\Program Files\Zabbix Agent'
+$zabbix_base_url = "https://cdn.zabbix.com/zabbix/binaries/stable/7.0"
+
+# Função auxiliar para obter a versão mais alta
+function Get-LatestVersion {
+    param(
+        [string]$baseUrl
+    )
+    try {
+        $response = Invoke-WebRequest -Uri $baseUrl -UseBasicParsing
+        $versionMatches = Select-String -InputObject $response.Content -Pattern "7\.0\.(\d+)" -AllMatches
+
+        # Verifica se não encontrou nenhum match
+        if ($versionMatches.Count -eq 0) {
+            throw "Nenhuma versão encontrada."
+        }
+
+        $latestVersion = 0
+        foreach ($match in $versionMatches) {
+            $versionNumber = [int]$match.Groups[1].Value
+            if ($versionNumber -gt $latestVersion) {
+                $latestVersion = $versionNumber
+            }
+        }
+        
+        if ($latestVersion -gt 0) {
+            return $latestVersion
+        } else {
+            throw "Nenhuma versão válida encontrada."
+        }
+    } catch {
+        Write-Host "Erro ao buscar versões: $_"
+        return $null
+    }
+}
+
+# Obter a versão mais recente
+$latest_version = Get-LatestVersion -baseUrl $zabbix_base_url
+
+if ($latest_version -ne $null) {
+    $latest_version_url_zip = "$zabbix_base_url/7.0.$latest_version/zabbix_agent2-7.0.$latest_version-windows-amd64-openssl-static.zip"
     $latest_version_url_msi = "$zabbix_base_url/7.0.$latest_version/zabbix_agent2-7.0.$latest_version-windows-amd64-openssl.msi"
 
     Write-Host "Verificando se o arquivo ZIP existe: $latest_version_url_zip"
@@ -27,7 +88,7 @@ t_version-windows-amd64-openssl-static.zip"
 
     # Se não encontrou nem ZIP nem MSI, tente a versão de fallback
     if (-not $download_url) {
-        $fallback_version = "4"  # Ajustado para uma versão conhecida
+        $fallback_version = "10"  # Ajustado para uma versão conhecida, mude conforme necessário
         $fallback_version_url_zip = "$zabbix_base_url/7.0.$fallback_version/zabbix_agent2-7.0.$fallback_version-windows-amd64-openssl-static.zip"
         $fallback_version_url_msi = "$zabbix_base_url/7.0.$fallback_version/zabbix_agent2-7.0.$fallback_version-windows-amd64-openssl.msi"
 
