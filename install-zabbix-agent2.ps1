@@ -46,7 +46,11 @@ try {
     Write-Host "URL do instalador: $latest_version_url"
 } catch {
     Write-Host "Erro ao buscar as versões disponíveis do Zabbix Agent 2: $_"
-    exit 1
+    # Fallback: Defina manualmente uma versão se você souber que está disponível
+    # Por exemplo, digite '10' para a versão 7.0.10
+    $fallback_version = "10"
+    $latest_version_url = "$zabbix_base_url$($zip_file_pattern -f $fallback_version)"
+    Write-Host "Usando versão em fallback: $latest_version_url"
 }
 
 # Log
@@ -56,7 +60,7 @@ $logFile = "{0}\{1}-{2}.log" -f $env:TEMP,"install-zabbix-agent",$DataStamp
 # Download do binário
 Write-Host 'Fazendo download do instalador'
 try {
-    Invoke-WebRequest -Uri $latest_version_url -OutFile "$env:TEMP\zabbix_agent.zip" 
+    Invoke-WebRequest -Uri $latest_version_url -OutFile "$env:TEMP\zabbix_agent.zip"
 } catch {
     Write-Host "Falha ao baixar o arquivo do Zabbix Agent. URL: $latest_version_url"
     throw "Erro: $_"
