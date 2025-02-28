@@ -75,6 +75,7 @@ if ($latest_version -ne $null) {
     try {
         # Tentar baixar o .zip
         $response_zip = Invoke-WebRequest -Uri $latest_version_url_zip -UseBasicParsing -ErrorAction Stop
+        Write-Host "Baixando ZIP de: $latest_version_url_zip"
         $download_url = $latest_version_url_zip
         $file_type = "zip"
     } catch {
@@ -83,6 +84,7 @@ if ($latest_version -ne $null) {
         # Se não existia o zip, tentar o MSI
         try {
             $response_msi = Invoke-WebRequest -Uri $latest_version_url_msi -UseBasicParsing -ErrorAction Stop
+            Write-Host "Baixando MSI de: $latest_version_url_msi"
             $download_url = $latest_version_url_msi
             $file_type = "msi"
         } catch {
