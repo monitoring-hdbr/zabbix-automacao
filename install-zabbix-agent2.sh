@@ -4,7 +4,7 @@
 # data: 12-02-2025
 # finalidade: automatizar instalação do agente linux zabbix
 # comando para executar o script: 
-# curl -o z.sh https://codesilo.dimenoc.com/-/snippets/41/raw/main/install_zabbix_agente2.sh ; chmod +x z.sh ; ./z.sh
+# curl -o z.sh https://raw.githubusercontent.com/monitoring-hdbr/zabbix-automacao/refs/heads/main/install-zabbix-agent2.sh ; chmod +x z.sh ; ./z.sh
 #
 
 # Função para verificar se o comando existe
