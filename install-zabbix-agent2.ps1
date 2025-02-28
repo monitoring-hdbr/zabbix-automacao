@@ -66,7 +66,7 @@ if ($latest_version -ne $null) {
     $latest_version_url_zip = "$zabbix_base_url/7.0.$latest_version/zabbix_agent2-7.0.$latest_version-windows-amd64-openssl-static.zip"
     $latest_version_url_msi = "$zabbix_base_url/7.0.$latest_version/zabbix_agent2-7.0.$latest_version-windows-amd64-openssl.msi"
 
-    Write-Host "Verificando se o arquivo ZIP existe: $latest_version_url_zip"
+    Write-Host "Tentando baixar o arquivo ZIP de: $latest_version_url_zip"
 
     # Verificação de arquivos da versão mais recente
     $download_url = $null
@@ -79,10 +79,11 @@ if ($latest_version -ne $null) {
         $download_url = $latest_version_url_zip
         $file_type = "zip"
     } catch {
-        Write-Host "Arquivo ZIP não encontrado, tentando o arquivo MSI..."
+        Write-Host "Arquivo ZIP não encontrado. Tentando baixar o arquivo MSI..."
         
         # Se não existia o zip, tentar o MSI
         try {
+            Write-Host "Tentando baixar o arquivo MSI de: $latest_version_url_msi"
             $response_msi = Invoke-WebRequest -Uri $latest_version_url_msi -UseBasicParsing -ErrorAction Stop
             Write-Host "Baixando MSI de: $latest_version_url_msi"
             $download_url = $latest_version_url_msi
@@ -104,7 +105,7 @@ $DataStamp = get-date -Format yyyy.MM.dd-HH.mm.ss
 $logFile = "{0}\{1}-{2}.log" -f $env:TEMP,"install-zabbix-agent",$DataStamp
 
 # Download do binário
-Write-Host 'Fazendo download do instalador'
+Write-Host 'Fazendo download do instalador...'
 try {
     Invoke-WebRequest -Uri $download_url -OutFile "$env:TEMP\zabbix_agent.$file_type"
 } catch {
@@ -115,7 +116,7 @@ try {
 # Instalação do Zabbix Agent 2
 if ($file_type -eq "msi") {
     $msi_path = "$env:TEMP\zabbix_agent.$file_type"
-    Write-Host 'Instalando o Zabbix Agent 2'
+    Write-Host 'Instalando o Zabbix Agent 2...'
     $MSIArguments = @(
         "/passive",
         "/norestart",
@@ -138,13 +139,13 @@ if ($file_type -eq "msi") {
     Remove-Item -Path $msi_path -Recurse
 } elseif ($file_type -eq "zip") {
     # Extraindo o ZIP
-    Write-Host 'Extraindo o Zabbix Agent 2'
+    Write-Host 'Extraindo o Zabbix Agent 2...'
     Expand-Archive -Path "$env:TEMP\zabbix_agent.zip" -DestinationPath "$env:TEMP\zabbix_agent" -Force
     $msi_path = Get-ChildItem -Path "$env:TEMP\zabbix_agent" -Filter "*.msi" | Select-Object -First 1
 
     # Instalação do Zabbix Agent 2
     if ($msi_path) {
-        Write-Host 'Instalando o Zabbix Agent 2'
+        Write-Host 'Instalando o Zabbix Agent 2...'
         $MSIArguments = @(
             "/passive",
             "/norestart",
@@ -174,7 +175,7 @@ if ($file_type -eq "msi") {
 # Configuração do arquivo de configuração do Zabbix Agent
 $confFile = "$install_folder\zabbix_agent2.conf"
 if (Test-Path $confFile) {
-    Write-Host 'Atualizando arquivo de configuração do Zabbix Agent'
+    Write-Host 'Atualizando arquivo de configuração do Zabbix Agent...'
     (Get-Content $confFile) |
         ForEach-Object {
             $_ -replace '^Server=.*', "Server=$server" `
@@ -185,11 +186,11 @@ if (Test-Path $confFile) {
 }
 
 # Regras de firewall
-Write-Host '>>> Criando regra de firewall'
+Write-Host '>>> Criando regra de firewall...'
 New-NetFirewallRule -DisplayName "Zabbix Agent" -Direction inbound -Profile Any -Action Allow -LocalPort 10050 -Protocol TCP | Out-File -Append -FilePath "$logFile"
 
 # Iniciar o serviço do Zabbix Agent 2
-Write-Host '>>> Iniciando o serviço'
+Write-Host '>>> Iniciando o serviço...'
 Start-Service -Name "Zabbix Agent 2" | Out-File -Append -FilePath "$logFile"
 
 # Informações finais
